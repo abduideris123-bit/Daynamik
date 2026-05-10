@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="am">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dynamic Pharma</title>
+  <meta name="theme-color" content="#1a3a2a" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Dynamic Pharma" />
+  <script>
+    // Capture install prompt
+    window._installPrompt = null;
+    window.addEventListener("beforeinstallprompt", (e) => {
+      e.preventDefault();
+      window._installPrompt = e;
+    });
+  </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f4f7f5; }
+    ::-webkit-scrollbar { display: none; }
+    @keyframes slideDown {
+      from { transform: translateX(-50%) translateY(-80px); opacity: 0; }
+      to   { transform: translateX(-50%) translateY(0);     opacity: 1; }
+    }
+    .toast {
+      position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+      background: #1a3a2a; color: #fff; padding: 13px 22px;
+      border-radius: 14px; font-size: 14px; font-weight: 700;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.25); z-index: 9999;
+      animation: slideDown 0.3s ease; max-width: 90vw; text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useEffect, useCallback } = React;
+
+
+
+    const ADMIN_PASSWORD = "admin123";
+    const DEFAULT_CATEGORIES = ["መድሃኒቶች", "ቫይታሚን", "አቅርቦቶች", "ምግቦች & ሌሎች"];
+    const DEFAULT_PRODUCTS = [
+      { id: 1,  name: "Indigestion Powder",  category: "መድሃኒቶች",     price: 500,  unit: "ጥቅል" },
+      { id: 2,  name: "Diminazin + Salin",    category: "መድሃኒቶች",     price: 100,  unit: "ጠርሙስ" },
+      { id: 3,  name: "Ashinero 100ml",       category: "መድሃኒቶች",     price: 490,  unit: "ጠርሙስ", note: "480–500" },
+      { id: 4,  name: "Oxyttc 5g",            category: "መድሃኒቶች",     price: 500,  unit: "ጥቅል" },
+      { id: 5,  name: "Infra Red Ampul",      category: "መድሃኒቶች",     price: 1500, unit: "አምፑል" },
+      { id: 6,  name: "900mg Tetracozash",    category: "መድሃኒቶች",     price: 550,  unit: "ጥቅል" },
+      { id: 7,  name: "Milk Boost",           category: "መድሃኒቶች",     price: 1500, unit: "ጥቅል" },
+      { id: 8,  name: "Milk Boost Bolus",     category: "መድሃኒቶች",     price: 25,   unit: "ቁጥር" },
+      { id: 9,  name: "Fenacur Powder",       category: "መድሃኒቶች",     price: 60,   unit: "ጥቅል" },
+      { id: 10, name: "Penstrip",             category: "መድሃኒቶች",     price: 800,  unit: "ጠርሙስ" },
+      { id: 11, name: "Save Solution",        category: "መድሃኒቶች",     price: 300,  unit: "ጠርሙስ" },
+      { id: 12, name: "Doc Large",            category: "መድሃኒቶች",     price: 450,  unit: "ቁጥር" },
+      { id: 13, name: "Bio Vitamins (All)",   category: "ቫይታሚን",     price: 170,  unit: "ጥቅል" },
+      { id: 14, name: "Stress Mix",           category: "ቫይታሚን",     price: 350,  unit: "ጥቅል" },
+      { id: 15, name: "Stress Pack",          category: "ቫይታሚን",     price: 300,  unit: "ጥቅል" },
+      { id: 16, name: "Mega Mass",            category: "ቫይታሚን",     price: 600,  unit: "ጥቅል" },
+      { id: 17, name: "Megamin",              category: "ቫይታሚን",     price: 500,  unit: "ጥቅል" },
+      { id: 18, name: "Aminotech",            category: "ቫይታሚን",     price: 500,  unit: "ጥቅል" },
+      { id: 19, name: "AD3",                  category: "ቫይታሚን",     price: 500,  unit: "ጠርሙስ" },
+      { id: 20, name: "Hepavet",              category: "ቫይታሚን",     price: 470,  unit: "ጠርሙስ" },
+      { id: 21, name: "Kreat",               category: "ቫይታሚን",     price: 3800, unit: "ጥቅል" },
+      { id: 22, name: "Calcichick",           category: "ቫይታሚን",     price: 140,  unit: "ጥቅል" },
+      { id: 23, name: "Calcitex",             category: "ቫይታሚን",     price: 140,  unit: "ጥቅል" },
+      { id: 24, name: "Thermometer",          category: "አቅርቦቶች",      price: 450,  unit: "ቁጥር" },
+      { id: 25, name: "Syringe 20ml",         category: "አቅርቦቶች",      price: 25,   unit: "ቁጥር" },
+      { id: 26, name: "Drinker 7L",           category: "አቅርቦቶች",      price: 320,  unit: "ቁጥር" },
+      { id: 27, name: "Drinker 3L",           category: "አቅርቦቶች",      price: 230,  unit: "ቁጥር" },
+      { id: 28, name: "Feeder",               category: "አቅርቦቶች",      price: 400,  unit: "ቁጥር" },
+      { id: 29, name: "Egg Tray Cartoon",     category: "ምግቦች & ሌሎች", price: 9,    unit: "ቁጥር" },
+      { id: 30, name: "Egg Tray Plastic",     category: "ምግቦች & ሌሎች", price: 62,   unit: "ቁጥር", note: "60–65" },
+    ];
+
+    const categoryColors = {
+      "መድሃኒቶች": "#2d8a4e", "ቫይታሚን": "#1a6b8a",
+      "አቅርቦቶች": "#6b1a8a", "ምግቦች & ሌሎች": "#8a6b1a",
+    };
+    const getCategoryColor = (cat) => categoryColors[cat] || "#555";
+
+    const storage = {
+      get: (k) => { try { return localStorage.getItem(k); } catch { return null; } },
+      set: (k, v) => { try { localStorage.setItem(k, v); } catch {} },
+    };
+
+    function saveAlert(alert) {
+      try {
+        const raw = localStorage.getItem("vp_alerts");
+        const list = raw ? JSON.parse(raw) : [];
+        list.unshift({ ...alert, id: Date.now(), time: new Date().toISOString(), seen: false });
+        if (list.length > 50) list.length = 50;
+        localStorage.setItem("vp_alerts", JSON.stringify(list));
+      } catch {}
+    }
+
+    function getAlerts() {
+      try { const r = localStorage.getItem("vp_alerts"); return r ? JSON.parse(r) : []; } catch { return []; }
+    }
+
+    function markAllSeen() {
+      try {
+        const list = getAlerts().map(a => ({ ...a, seen: true }));
+        localStorage.setItem("vp_alerts", JSON.stringify(list));
+      } catch {}
+    }
+
+    function saveOneAlert(id) {
+      try {
+        const list = getAlerts().map(a => a.id === id ? { ...a, saved: true, seen: true } : a);
+        localStorage.setItem("vp_alerts", JSON.stringify(list));
+      } catch {}
+    }
+
+    function dismissOneAlert(id) {
+      try {
+        const list = getAlerts().filter(a => a.id !== id);
+        localStorage.setItem("vp_alerts", JSON.stringify(list));
+      } catch {}
+    }
+
+    // ===================== DELETE HISTORY =====================
+    function saveDeleteHistory(product) {
+      try {
+        const raw = localStorage.getItem("vp_delete_history");
+        const list = raw ? JSON.parse(raw) : [];
+        list.unshift({ ...product, _deletedAt: new Date().toISOString() });
+        if (list.length > 30) list.length = 30;
+        localStorage.setItem("vp_delete_history", JSON.stringify(list));
+      } catch {}
+    }
+    function getDeleteHistory() {
+      try { const r = localStorage.getItem("vp_delete_history"); return r ? JSON.parse(r) : []; } catch { return []; }
+    }
+    function removeFromDeleteHistory(id) {
+      try {
+        const list = getDeleteHistory().filter(p => p.id !== id);
+        localStorage.setItem("vp_delete_history", JSON.stringify(list));
+      } catch {}
+    }
+
+    function exportBackup(products, categories, users) {
+      const blob = new Blob([JSON.stringify({ products, categories, users }, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "DynamicPharma_backup.json"; a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function sendPush(title, body) {
+      if (!("Notification" in window)) return;
+      const fire = () => {
+        try {
+          new Notification(title, {
+            body,
+            tag: "dynamic-pharma-" + Date.now(),
+            renotify: true,
+          });
+        } catch {}
+      };
+      if (Notification.permission === "granted") fire();
+      else if (Notification.permission !== "denied") Notification.requestPermission().then(p => { if (p === "granted") fire(); });
+    }
+
+    function Toast({ message, onDone }) {
+      useEffect(() => { const t = setTimeout(onDone, 3500); return () => clearTimeout(t); }, []);
+      return <div className="toast">🔔 {message}</div>;
+    }
+
+    // ===================== APP =====================
+    function App() {
+      const [screen, setScreen]         = useState("home");
+      const [products, setProducts]     = useState(DEFAULT_PRODUCTS);
+      const [categories, setCategories] = useState(DEFAULT_CATEGORIES);
+      const [currentUser, setCurrentUser] = useState(null);
+      const [users, setUsers]           = useState([]);
+      const [loaded, setLoaded]         = useState(false);
+      const [toast, setToast]           = useState(null);
+
+      const [alerts, setAlerts] = useState([]);
+      const [showAlerts, setShowAlerts] = useState(false);
+
+      const refreshAlerts = useCallback(() => setAlerts(getAlerts()), []);
+
+      const notify = useCallback((toastMsg, pushTitle, pushBody, alertData) => {
+        setToast(toastMsg);
+        sendPush(pushTitle || "Dynamic Pharma 🐾", pushBody || toastMsg);
+        if (alertData) {
+          saveAlert(alertData);
+          setAlerts(getAlerts());
+        }
+      }, []);
+
+      useEffect(() => {
+        const p = storage.get("vp_products");   if (p) setProducts(JSON.parse(p));
+        const c = storage.get("vp_categories"); if (c) setCategories(JSON.parse(c));
+        const u = storage.get("vp_users");      if (u) setUsers(JSON.parse(u));
+        const su = storage.get("vp_current_user");
+        if (su) { try { const usr = JSON.parse(su); if (usr && usr.role !== "admin") { setCurrentUser(usr); setScreen("employee"); } } catch {} }
+        if ("Notification" in window && Notification.permission === "default") Notification.requestPermission();
+        setAlerts(getAlerts());
+        setLoaded(true);
+      }, []);
+
+      const saveProducts   = useCallback((d) => { setProducts(d);    storage.set("vp_products",    JSON.stringify(d)); }, []);
+      const saveCategories = useCallback((d) => { setCategories(d);  storage.set("vp_categories",  JSON.stringify(d)); }, []);
+      const saveUsers      = useCallback((d) => { setUsers(d);       storage.set("vp_users",       JSON.stringify(d)); }, []);
+
+      const handleRegister = (user) => {
+        if (!users.find(u => u.phone === user.phone)) saveUsers([...users, { ...user, id: Date.now() }]);
+        setScreen("home");
+      };
+
+      const handleLogin = (phone) => {
+        const raw = storage.get("vp_users");
+        const all = raw ? JSON.parse(raw) : users;
+        const user = all.find(u => u.phone === phone.trim());
+        if (user) { setCurrentUser(user); storage.set("vp_current_user", JSON.stringify(user)); setScreen("employee"); return true; }
+        return false;
+      };
+
+      const handleLogout = () => { setCurrentUser(null); storage.set("vp_current_user", ""); setScreen("home"); };
+
+      // PWA install — show once, then remember
+      const [showInstall, setShowInstall] = useState(false);
+      useEffect(() => {
+        const already = storage.get("vp_pwa_installed");
+        if (already) return;
+        const check = setInterval(() => {
+          if (window._installPrompt) { setShowInstall(true); clearInterval(check); }
+        }, 800);
+        return () => clearInterval(check);
+      }, []);
+      const doInstall = () => {
+        if (!window._installPrompt) return;
+        window._installPrompt.prompt();
+        window._installPrompt.userChoice.then(r => {
+          if (r.outcome === "accepted") { storage.set("vp_pwa_installed","1"); }
+          window._installPrompt = null; setShowInstall(false);
+        });
+      };
+      const dismissInstall = () => { storage.set("vp_pwa_installed","1"); setShowInstall(false); };
+
+      const handleImport = (e) => {
+        const file = e.target.files[0]; if (!file) return;
+        const r = new FileReader();
+        r.onload = (ev) => {
+          try {
+            const d = JSON.parse(ev.target.result);
+            if (d.products)   saveProducts(d.products);
+            if (d.categories) saveCategories(d.categories);
+            if (d.users)      saveUsers(d.users);
+            alert("✅ ፋይሉ ተጭኗል!");
+          } catch { alert("❌ ፋይሉ ትክክል አይደለም!"); }
+        };
+        r.readAsText(file); e.target.value = "";
+      };
+
+      if (!loaded) return <div style={S.loading}>እየጫነ ነው...</div>;
+
+      return (
+        <>
+          {toast && <Toast message={toast} onDone={() => setToast(null)} />}
+          {screen === "register"  && <RegisterScreen onRegister={handleRegister} onBack={() => setScreen("home")} />}
+          {screen === "employee"  && <EmployeeView products={products} categories={categories} currentUser={currentUser} onBack={handleLogout} alerts={alerts} onMarkSeen={() => { markAllSeen(); setAlerts(getAlerts()); }} onSave={(id) => { saveOneAlert(id); setAlerts(getAlerts()); }} onDismiss={(id) => { dismissOneAlert(id); setAlerts(getAlerts()); }} />}
+          {screen === "admin"     && (
+            <AdminView products={products} categories={categories} users={users}
+              saveProducts={saveProducts} saveCategories={saveCategories}
+              onBack={() => setScreen("home")}
+              onExport={() => exportBackup(products, categories, users)}
+              onImport={handleImport} notify={notify} />
+          )}
+          {screen === "home" && <Home onAdmin={() => setScreen("admin")} onRegister={() => setScreen("register")} onLogin={handleLogin} />}
+          {showInstall && (
+            <div style={{ position:"fixed", bottom:0, left:0, right:0, background:"#1a3a2a", color:"#fff", padding:"16px 20px", zIndex:9999, display:"flex", alignItems:"center", gap:12, boxShadow:"0 -4px 20px rgba(0,0,0,0.3)" }}>
+              <span style={{ fontSize:28 }}>🐾</span>
+              <div style={{ flex:1 }}>
+                <div style={{ fontWeight:800, fontSize:14 }}>Dynamic Pharma ኢንስታል አድርግ</div>
+                <div style={{ fontSize:12, opacity:0.8 }}>Home screen ላይ ለፈጣን መዳረሻ</div>
+              </div>
+              <button onClick={doInstall} style={{ background:"#2d8a4e", border:"none", color:"#fff", borderRadius:10, padding:"10px 16px", fontWeight:800, fontSize:13, cursor:"pointer" }}>ኢንስታል</button>
+              <button onClick={dismissInstall} style={{ background:"rgba(255,255,255,0.15)", border:"none", color:"#fff", borderRadius:10, padding:"10px 12px", fontWeight:700, fontSize:13, cursor:"pointer" }}>✕</button>
+            </div>
+          )}
+        </>
+      );
+    }
+
+    // ===================== HOME =====================
+    function Home({ onAdmin, onRegister, onLogin }) {
+      const [showAdmin, setShowAdmin] = useState(false);
+      const [showLogin, setShowLogin] = useState(false);
+      const [pwd,   setPwd]   = useState("");
+      const [phone, setPhone] = useState("");
+      const [error, setError] = useState("");
+
+      const doAdmin = () => {
+        if (pwd === ADMIN_PASSWORD) { setShowAdmin(false); setPwd(""); onAdmin(); }
+        else { setError("የተሳሳተ የይለፍ ቃል!"); setPwd(""); }
+      };
+      const doLogin = () => { if (!onLogin(phone)) setError("ስልክ ቁጥሩ አልተገኘም! እባክዎ ይመዝገቡ።"); };
+
+      return (
+        <div style={S.homeWrap}>
+          <div style={S.homeCard}>
+            <div style={S.logo}>🐾</div>
+            <h1 style={S.homeTitle}>Dynamic Pharma</h1>
+            <p style={S.homeSubtitle}>የዋጋ አስተዳደር ስርዓት</p>
+            <div style={S.homeBtns}>
+              <button style={S.btnEmployee} onClick={() => { setShowLogin(true); setError(""); setPhone(""); }}>👁 ግባ / የዋጋ ዝርዝር</button>
+              <button style={S.btnRegister} onClick={onRegister}>📝 አዲስ ተጠቃሚ ይመዝገቡ</button>
+              <button style={S.btnAdmin}    onClick={() => { setShowAdmin(true); setError(""); setPwd(""); }}>🔐 አስተዳዳሪ ግባ</button>
+            </div>
+          </div>
+
+          {showLogin && (
+            <div style={S.overlay} onClick={() => setShowLogin(false)}>
+              <div style={S.modal} onClick={e => e.stopPropagation()}>
+                <h2 style={S.modalTitle}>📱 በስልክ ቁጥር ግባ</h2>
+                <p style={{ fontSize: 13, color: "#5a7a6a", marginBottom: 14 }}>ለማየት መመዝገብ ግዴታ ነው።</p>
+                <input style={S.input} type="tel" placeholder="09... ወይም +251..." value={phone}
+                  onChange={e => { setPhone(e.target.value); setError(""); }}
+                  onKeyDown={e => e.key === "Enter" && doLogin()} autoFocus />
+                {error && <p style={S.errorTxt}>{error}</p>}
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button style={S.btnPrimary} onClick={doLogin}>ግባ</button>
+                  <button style={S.btnSecondary} onClick={() => setShowLogin(false)}>ሰርዝ</button>
+                </div>
+                <p style={{ fontSize: 12, color: "#888", marginTop: 12, textAlign: "center" }}>
+                  ተጠቃሚ ካልሆኑ{" "}
+                  <span style={{ color: "#2d8a4e", fontWeight: 700, cursor: "pointer" }}
+                    onClick={() => { setShowLogin(false); onRegister(); }}>ይመዝገቡ</span>
+                </p>
+              </div>
+            </div>
+          )}
+
+          {showAdmin && (
+            <div style={S.overlay} onClick={() => { setShowAdmin(false); setPwd(""); setError(""); }}>
+              <div style={S.modal} onClick={e => e.stopPropagation()}>
+                <h2 style={S.modalTitle}>🔐 አስተዳዳሪ መግቢያ</h2>
+                <input style={S.input} type="password" placeholder="የይለፍ ቃል" value={pwd}
+                  onChange={e => { setPwd(e.target.value); setError(""); }}
+                  onKeyDown={e => e.key === "Enter" && doAdmin()} autoFocus />
+                {error && <p style={S.errorTxt}>{error}</p>}
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button style={S.btnPrimary} onClick={doAdmin}>ግባ</button>
+                  <button style={S.btnSecondary} onClick={() => { setShowAdmin(false); setPwd(""); setError(""); }}>ሰርዝ</button>
+                </div>
+                <p style={{ fontSize: 11, color: "#aaa", marginTop: 10 }}>ነባሪ ይለፍ ቃል: admin123</p>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ===================== REGISTER =====================
+    function RegisterScreen({ onRegister, onBack }) {
+      const [name, setName] = useState(""); const [phone, setPhone] = useState(""); const [error, setError] = useState("");
+      const go = () => {
+        if (!name.trim()) { setError("ስም ያስፈልጋል!"); return; }
+        if (!phone.trim() || phone.trim().length < 9) { setError("ትክክለኛ ስልክ ቁጥር ያስፈልጋል!"); return; }
+        onRegister({ name: name.trim(), phone: phone.trim() });
+      };
+      return (
+        <div style={S.homeWrap}>
+          <div style={{ ...S.homeCard, padding: "36px 32px" }}>
+            <div style={S.logo}>📝</div>
+            <h1 style={{ ...S.homeTitle, fontSize: 22, marginBottom: 6 }}>አዲስ ተጠቃሚ</h1>
+            <p style={S.homeSubtitle}>ከተመዘገቡ በኋላ ስልክ ቁጥርዎን ተጠቀሙ ለመግባት</p>
+            <div style={{ textAlign: "left" }}>
+              <label style={S.label}>ሙሉ ስም</label>
+              <input style={S.input} type="text" placeholder="ለምሳሌ: አበበ ከበደ" value={name} onChange={e => { setName(e.target.value); setError(""); }} />
+              <label style={S.label}>ስልክ ቁጥር</label>
+              <input style={S.input} type="tel" placeholder="0912345678" value={phone}
+                onChange={e => { setPhone(e.target.value); setError(""); }} onKeyDown={e => e.key === "Enter" && go()} />
+              {error && <p style={S.errorTxt}>{error}</p>}
+              <div style={{ display: "flex", gap: 10 }}>
+                <button style={S.btnPrimary} onClick={go}>✅ ተመዝገብ</button>
+                <button style={S.btnSecondary} onClick={onBack}>ተመለስ</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ===================== ALERT PANEL =====================
+    function AlertPanel({ alerts, onClose, onSave, onDismiss }) {
+      const typeIcon = (t) => t === "add" ? "➕" : t === "edit" ? "✏️" : "🗑";
+      const typeLabel = (t) => t === "add" ? "አዲስ ምርት" : t === "edit" ? "ምርት ተስተካክሏል" : "ምርት ተሰርዟል";
+      const typeColor = (t) => t === "add" ? "#2d8a4e" : t === "edit" ? "#1a6b8a" : "#c0392b";
+      const fmtTime = (iso) => {
+        const d = new Date(iso);
+        return d.toLocaleDateString("am-ET", { month:"short", day:"numeric" }) + " " + d.toLocaleTimeString("am-ET", { hour:"2-digit", minute:"2-digit" });
+      };
+      return (
+        <div style={S.overlay} onClick={onClose}>
+          <div style={{ ...S.modal, maxWidth: 420, padding: 0, overflow: "hidden" }} onClick={e => e.stopPropagation()}>
+            <div style={{ background:"linear-gradient(135deg,#1a3a2a,#2d5a3d)", padding:"18px 20px", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+              <h2 style={{ color:"#fff", fontSize:17, fontWeight:800, margin:0 }}>🔔 ማሳወቂያዎች</h2>
+              <button style={{ background:"rgba(255,255,255,0.18)", border:"none", color:"#fff", borderRadius:8, padding:"6px 12px", cursor:"pointer", fontWeight:700 }} onClick={onClose}>ዝጋ</button>
+            </div>
+            <div style={{ maxHeight:"70vh", overflowY:"auto", padding: 14 }}>
+              {alerts.length === 0 && <p style={{ textAlign:"center", color:"#aaa", padding:"30px 0", fontSize:15 }}>እስካሁን ምንም ማሳወቂያ የለም</p>}
+              {alerts.map(a => (
+                <div key={a.id} style={{ background: a.saved ? "#e8f5ee" : a.seen ? "#f9f9f9" : "#eaf6ef", border:`1.5px solid ${a.saved ? "#2d8a4e" : a.seen ? "#e0e0e0" : typeColor(a.type)}`, borderRadius:12, padding:"12px 14px", marginBottom:10, position:"relative" }}>
+                  {!a.seen && <div style={{ position:"absolute", top:10, right:12, width:8, height:8, borderRadius:"50%", background:"#e74c3c" }} />}
+                  <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
+                    <span style={{ fontSize:18 }}>{typeIcon(a.type)}</span>
+                    <span style={{ fontWeight:800, color: typeColor(a.type), fontSize:13 }}>{typeLabel(a.type)}</span>
+                    <span style={{ marginLeft:"auto", fontSize:11, color:"#aaa" }}>{fmtTime(a.time)}</span>
+                  </div>
+                  <div style={{ fontWeight:700, color:"#1a3a2a", fontSize:15, marginBottom:4 }}>{a.name}</div>
+                  <div style={{ fontSize:12, color:"#555", display:"flex", gap:10, flexWrap:"wrap" }}>
+                    <span>🏷 {a.category}</span>
+                    <span>💰 {a.price} / {a.unit}</span>
+                  </div>
+                  {a.description && <div style={{ marginTop:6, fontSize:12, color:"#1a3a2a", background:"#e8f5ee", borderRadius:8, padding:"6px 10px", fontWeight:600 }}>📝 {a.description}</div>}
+                  {a.usage && <div style={{ marginTop:4, fontSize:12, color:"#3a5a4a", background:"#f0f7f2", borderRadius:8, padding:"6px 10px" }}>📋 {a.usage}</div>}
+                  {a.expiry && <div style={{ marginTop:4, fontSize:11, color:"#a07000", background:"#fff8e1", borderRadius:8, padding:"4px 10px", display:"inline-block" }}>📅 Expiry: {a.expiry}</div>}
+                  <div style={{ display:"flex", gap:8, marginTop:10 }}>
+                    <button onClick={() => !a.saved && onSave(a.id)} style={{ flex:1, padding:"7px 0", borderRadius:8, border:"1.5px solid #2d8a4e", background: a.saved ? "#e8f5ee" : "#fff", color:"#2d8a4e", fontSize:12, fontWeight:700, cursor: a.saved ? "default" : "pointer" }}>{a.saved ? "✅ ተቀምጧል" : "📌 አስቀምጥ"}</button>
+                    <button onClick={() => onDismiss(a.id)} style={{ flex:1, padding:"7px 0", borderRadius:8, border:"1.5px solid #e74c3c", background:"#fff", color:"#e74c3c", fontSize:12, fontWeight:700, cursor:"pointer" }}>✕ አጥፋ</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // ===================== EMPLOYEE VIEW =====================
+    function EmployeeView({ products, categories, currentUser, onBack, alerts, onMarkSeen, onSave, onDismiss }) {
+      const [activeCat, setActiveCat] = useState("ሁሉም");
+      const [search, setSearch]       = useState("");
+      const [selected, setSelected]   = useState(null);
+      const [showAlerts, setShowAlerts] = useState(false);
+
+      const unread = alerts.filter(a => !a.seen).length;
+
+      const openAlerts = () => { setShowAlerts(true); onMarkSeen(); };
+
+      const filtered = products.filter(p =>
+        (activeCat === "ሁሉም" || p.category === activeCat) &&
+        p.name.toLowerCase().includes(search.toLowerCase())
+      );
+
+      return (
+        <div style={S.pageWrap}>
+          <div style={S.header}>
+            <button style={S.backBtn} onClick={onBack}>← ውጣ</button>
+            <h1 style={S.pageTitle}>🐾 Dynamic Pharma</h1>
+            <button onClick={openAlerts} style={{ background:"rgba(255,255,255,0.15)", border:"none", borderRadius:10, padding:"8px 10px", cursor:"pointer", position:"relative", fontSize:20, lineHeight:1 }}>
+              🔔
+              {unread > 0 && (
+                <span style={{ position:"absolute", top:-4, right:-4, background:"#e74c3c", color:"#fff", borderRadius:"50%", fontSize:10, fontWeight:800, minWidth:16, height:16, display:"flex", alignItems:"center", justifyContent:"center", padding:"0 3px" }}>{unread > 9 ? "9+" : unread}</span>
+              )}
+            </button>
+          </div>
+          {showAlerts && <AlertPanel alerts={alerts} onClose={() => setShowAlerts(false)} onSave={onSave} onDismiss={onDismiss} />}
+          {currentUser && <div style={S.greetBar}>👋 ሰላም, <strong>{currentUser.name}</strong>!</div>}
+          <div style={S.searchBar}>
+            <input style={S.searchInput} placeholder="🔍 ምርት ፈልግ..." value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
+          <div style={S.catTabs}>
+            {["ሁሉም", ...categories].map(c => (
+              <button key={c} style={{ ...S.catTab, ...(activeCat === c ? S.catTabActive : {}), ...(c !== "ሁሉም" ? { borderColor: getCategoryColor(c) } : {}) }}
+                onClick={() => setActiveCat(c)}>{c}</button>
+            ))}
+          </div>
+          <div style={S.productGrid}>
+            {filtered.length === 0 && <p style={S.emptyTxt}>ምርት አልተገኘም</p>}
+            {filtered.map(p => (
+              <div key={p.id} style={S.productCard} onClick={() => setSelected(p)}>
+                <div style={{ ...S.catBadge, background: getCategoryColor(p.category) }}>{p.category}</div>
+                <p style={S.productName}>{p.name}</p>
+                <div style={S.priceRow}>
+                  <span style={S.price}>{p.note ? p.note + " ብር" : p.price.toLocaleString() + " ብር"}</span>
+                  <span style={S.unit}>/ {p.unit}</span>
+                </div>
+                {p.expiry && <div style={S.expiryBadge}>📅 {p.expiry}</div>}
+                {p.usage  && <div style={{ fontSize: 11, color: "#888" }}>📋 {p.usage.slice(0,28)}{p.usage.length>28?"…":""}</div>}
+              </div>
+            ))}
+          </div>
+          <p style={S.countTxt}>{filtered.length} ምርቶች</p>
+
+          {selected && (
+            <div style={S.overlay} onClick={() => setSelected(null)}>
+              <div style={S.modal} onClick={e => e.stopPropagation()}>
+                <div style={{ ...S.catBadge, background: getCategoryColor(selected.category), marginBottom: 10 }}>{selected.category}</div>
+                <h2 style={{ fontSize: 20, fontWeight: 800, color: "#1a3a2a", marginBottom: 8 }}>{selected.name}</h2>
+                <div style={S.priceRow}>
+                  <span style={{ ...S.price, fontSize: 22 }}>{selected.note ? selected.note + " ብር" : selected.price.toLocaleString() + " ብር"}</span>
+                  <span style={S.unit}>/ {selected.unit}</span>
+                </div>
+                {selected.description && (
+                  <div style={{ ...S.detailBox, background:"#e8f5ee", borderColor:"#2d8a4e" }}>
+                    <span style={S.detailLabel}>📝 ምንነት</span>
+                    <p style={S.detailText}>{selected.description}</p>
+                  </div>
+                )}
+                {selected.usage && (
+                  <div style={S.detailBox}>
+                    <span style={S.detailLabel}>📋 አጠቃቀም</span>
+                    <p style={S.detailText}>{selected.usage}</p>
+                  </div>
+                )}
+                {selected.expiry && (
+                  <div style={{ ...S.detailBox, borderColor: "#f0a500", background: "#fff8e1" }}>
+                    <span style={{ ...S.detailLabel, color: "#a07000" }}>📅 Expiry Date</span>
+                    <p style={{ ...S.detailText, color: "#a07000", fontWeight: 700 }}>{selected.expiry}</p>
+                  </div>
+                )}
+                <button style={{ ...S.btnSecondary, marginTop: 16, width: "100%" }} onClick={() => setSelected(null)}>ዝጋ</button>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ===================== DELETE HISTORY TAB =====================
+    function DeleteHistoryTab({ products, saveProducts, notify, getCategoryColor, S }) {
+      const [history, setHistory] = React.useState(getDeleteHistory());
+
+      const handleRestore = (item) => {
+        const { _deletedAt, ...product } = item;
+        // Give new id if conflict
+        const newId = products.find(p => p.id === product.id) ? Date.now() : product.id;
+        saveProducts([...products, { ...product, id: newId }]);
+        removeFromDeleteHistory(item.id);
+        setHistory(getDeleteHistory());
+        notify(`"${product.name}" ወደ ዝርዝር ተመልሷል!`);
+      };
+
+      const handleClearAll = () => {
+        if (confirm("ሁሉም የተሰረዙ ምርቶች ታሪክ ይጥፋ?")) {
+          localStorage.removeItem("vp_delete_history");
+          setHistory([]);
+        }
+      };
+
+      const fmtDate = (iso) => {
+        const d = new Date(iso);
+        return d.toLocaleDateString("am-ET", { month:"short", day:"numeric", hour:"2-digit", minute:"2-digit" });
+      };
+
+      return (
+        <div style={S.catManage}>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:14 }}>
+            <p style={{ color:"#3a5a4a", fontWeight:700, fontSize:15 }}>🗂 የተሰረዙ ምርቶች ታሪክ — {history.length} / 30</p>
+            {history.length > 0 && <button style={{ ...S.deleteBtn, padding:"6px 12px", fontSize:12 }} onClick={handleClearAll}>🗑 ሁሉም አጽዳ</button>}
+          </div>
+          {history.length === 0 && <p style={S.emptyTxt}>እስካሁን ምንም ምርት አልተሰረዘም</p>}
+          {history.map((item, i) => (
+            <div key={item.id + "-" + i} style={{ background:"#fff", borderRadius:14, padding:"12px 14px", marginBottom:10, boxShadow:"0 1px 8px rgba(0,0,0,0.07)", borderLeft:`4px solid ${getCategoryColor(item.category)}` }}>
+              <div style={{ display:"flex", alignItems:"flex-start", gap:8 }}>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontWeight:800, color:"#1a3a2a", fontSize:15 }}>{item.name}</div>
+                  <div style={{ fontSize:12, color:"#888", marginTop:2, display:"flex", gap:10, flexWrap:"wrap" }}>
+                    <span>🏷 {item.category}</span>
+                    <span>💰 {item.note || item.price + " ብር"} / {item.unit}</span>
+                    {item.expiry && <span>📅 {item.expiry}</span>}
+                  </div>
+                  {item.description && <div style={{ fontSize:12, color:"#3a5a4a", marginTop:4 }}>📝 {item.description}</div>}
+                  {item.usage && <div style={{ fontSize:12, color:"#555", marginTop:2 }}>📋 {item.usage.slice(0,50)}{item.usage.length>50?"…":""}</div>}
+                  <div style={{ fontSize:11, color:"#bbb", marginTop:4 }}>🕐 {fmtDate(item._deletedAt)}</div>
+                </div>
+                <button style={{ ...S.editBtn, padding:"8px 12px", fontSize:12, whiteSpace:"nowrap", flexShrink:0 }} onClick={() => handleRestore(item)}>↩ መልስ</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // ===================== CAT MANAGER =====================
+    function CatManager({ categories, products, onAdd, newCat, setNewCat, onDelete, onRename, getCategoryColor, S }) {
+      const [editingCat, setEditingCat] = React.useState(null);
+      const [editVal, setEditVal]       = React.useState("");
+
+      const startEdit = (cat) => { setEditingCat(cat); setEditVal(cat); };
+      const saveEdit  = () => { onRename(editingCat, editVal); setEditingCat(null); };
+      const cancelEdit = () => setEditingCat(null);
+
+      return (
+        <div style={S.catManage}>
+          <div style={S.addCatRow}>
+            <input style={S.input} placeholder="አዲስ ምድብ ስም..." value={newCat}
+              onChange={e => setNewCat(e.target.value)} onKeyDown={e => e.key === "Enter" && onAdd()} />
+            <button style={S.btnPrimary} onClick={onAdd}>+ አስገባ</button>
+          </div>
+          {categories.map(cat => (
+            <div key={cat} style={S.catRow}>
+              <div style={{ ...S.catDot, background: getCategoryColor(cat) }} />
+              {editingCat === cat ? (
+                <>
+                  <input
+                    style={{ ...S.input, flex:1, marginBottom:0, padding:"8px 10px", fontSize:14 }}
+                    value={editVal}
+                    onChange={e => setEditVal(e.target.value)}
+                    onKeyDown={e => { if(e.key==="Enter") saveEdit(); if(e.key==="Escape") cancelEdit(); }}
+                    autoFocus
+                  />
+                  <button style={{ ...S.editBtn, padding:"7px 12px", marginLeft:6 }} onClick={saveEdit}>✅</button>
+                  <button style={{ ...S.deleteBtn, padding:"7px 12px", marginLeft:4 }} onClick={cancelEdit}>✕</button>
+                </>
+              ) : (
+                <>
+                  <span style={S.catName}>{cat}</span>
+                  <span style={S.catCount}>{products.filter(p => p.category === cat).length} ምርቶች</span>
+                  <button style={{ ...S.editBtn, padding:"6px 10px" }} onClick={() => startEdit(cat)}>✏️</button>
+                  <button style={{ ...S.deleteBtn, padding:"6px 10px", marginLeft:4 }} onClick={() => onDelete(cat)}>🗑</button>
+                </>
+              )}
+            </div>
+          ))}
+        </div>
+      );
+    }
+
+    // ===================== ADMIN VIEW =====================
+    function AdminView({ products, categories, users, saveProducts, saveCategories, onBack, onExport, onImport, notify }) {
+      const [tab, setTab]           = useState("products");
+      const [editItem, setEditItem] = useState(null);
+      const [showForm, setShowForm] = useState(false);
+      const empty = { name: "", category: "", price: "", unit: "ቁጥር", note: "", usage: "", expiry: "", description: "" };
+      const [form, setForm]         = useState(empty);
+      const [newCat, setNewCat]     = useState("");
+      const [search, setSearch]     = useState("");
+      const [filterCat, setFilterCat] = useState("ሁሉም");
+
+      const openAdd  = () => { setEditItem(null); setForm({ ...empty, category: categories[0] || "" }); setShowForm(true); };
+      const openEdit = (p) => { setEditItem(p); setForm({ name: p.name, category: p.category, price: String(p.price), unit: p.unit, note: p.note||"", usage: p.usage||"", expiry: p.expiry||"", description: p.description||"" }); setShowForm(true); };
+
+      const handleSave = () => {
+        if (!form.name || !form.price || isNaN(Number(form.price))) return;
+        const item = { ...form, price: Number(form.price) };
+        if (!item.note)        delete item.note;
+        if (!item.usage)       delete item.usage;
+        if (!item.expiry)      delete item.expiry;
+        if (!item.description) delete item.description;
+        if (editItem) {
+          saveProducts(products.map(p => p.id === editItem.id ? { ...p, ...item } : p));
+          const pushBody = [
+            `📦 ምርት: ${form.name}`,
+            `🏷 ምድብ: ${form.category}`,
+            `💰 ዋጋ: ${form.note || form.price + " ብር"} / ${form.unit}`,
+            form.usage ? `📋 አጠቃቀም: ${form.usage}` : null,
+          ].filter(Boolean).join("\n");
+          notify(`"${form.name}" ተስተካክሏል!`, "✏️ ምርት ተስተካክሏል — Dynamic Pharma", pushBody, { type:"edit", name:form.name, category:form.category, price:form.note||form.price+" ብር", unit:form.unit, usage:form.usage||"", description:form.description||"", expiry:form.expiry||"" });
+        } else {
+          saveProducts([...products, { id: Date.now(), ...item }]);
+          const pushBody = [
+            `📦 ምርት: ${form.name}`,
+            `🏷 ምድብ: ${form.category}`,
+            `💰 ዋጋ: ${form.note || form.price + " ብር"} / ${form.unit}`,
+            form.usage ? `📋 አጠቃቀም: ${form.usage}` : null,
+          ].filter(Boolean).join("\n");
+          notify(`"${form.name}" አዲስ ምርት ተጨምሯል!`, "➕ አዲስ ምርት ተጨምሯል — Dynamic Pharma", pushBody, { type:"add", name:form.name, category:form.category, price:form.note||form.price+" ብር", unit:form.unit, usage:form.usage||"", description:form.description||"", expiry:form.expiry||"" });
+        }
+        setShowForm(false);
+      };
+
+      const handleDelete = (id) => {
+        const p = products.find(x => x.id === id);
+        if (confirm("ይሄን ምርት ሊሰርዙ ይፈልጋሉ?")) {
+          saveDeleteHistory(p);
+          saveProducts(products.filter(x => x.id !== id));
+          const pushBody = [
+            `📦 ምርት: ${p.name}`,
+            `🏷 ምድብ: ${p.category}`,
+            `💰 ዋጋ: ${p.note || p.price + " ብር"} / ${p.unit}`,
+            p.usage ? `📋 አጠቃቀም: ${p.usage}` : null,
+          ].filter(Boolean).join("\n");
+          notify(`"${p.name}" ተሰርዟል!`, "🗑 ምርት ተሰርዟል — Dynamic Pharma", pushBody, { type:"delete", name:p.name, category:p.category, price:p.note||p.price+" ብር", unit:p.unit, usage:p.usage||"", description:p.description||"", expiry:p.expiry||"" });
+        }
+      };
+
+      const addCategory = () => {
+        if (!newCat.trim() || categories.includes(newCat.trim())) return;
+        saveCategories([...categories, newCat.trim()]); notify(`"${newCat.trim()}" ምድብ ተጨምሯል!`); setNewCat("");
+      };
+
+      const deleteCategory = (cat) => {
+        if (products.some(p => p.category === cat)) { alert("ይህ ምድብ ምርቶች ስላሉት ሊሰረዝ አይችልም!"); return; }
+        if (confirm(`"${cat}" ምድብ ሊሰርዙ ይፈልጋሉ?`)) { saveCategories(categories.filter(c => c !== cat)); notify(`"${cat}" ምድብ ተሰርዟል!`); }
+      };
+
+      const renameCategory = (oldName, newName) => {
+        if (!newName.trim() || newName.trim() === oldName) return;
+        if (categories.includes(newName.trim())) { alert("ይህ ምድብ ስም አስቀድሞ አለ!"); return; }
+        saveCategories(categories.map(c => c === oldName ? newName.trim() : c));
+        saveProducts(products.map(p => p.category === oldName ? { ...p, category: newName.trim() } : p));
+        notify(`"${oldName}" → "${newName.trim()}" ተቀይሯል!`);
+      };
+
+      const filtered = products.filter(p =>
+        (filterCat === "ሁሉም" || p.category === filterCat) &&
+        p.name.toLowerCase().includes(search.toLowerCase())
+      );
+
+      return (
+        <div style={S.pageWrap}>
+          <div style={S.header}>
+            <button style={S.backBtn} onClick={onBack}>← ተመለስ</button>
+            <h1 style={S.pageTitle}>⚙️ አስተዳዳሪ</h1>
+            <div style={{ width: 70 }} />
+          </div>
+
+          <div style={S.backupBar}>
+            <span style={{ fontSize: 13, color: "#3a5a4a", fontWeight: 600 }}>💾 ፋይሉን አስቀምጥ / ጫን</span>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button style={S.backupBtn} onClick={onExport}>📥 አውርድ</button>
+              <label style={S.backupBtn}>📤 ጫን<input type="file" accept=".json" style={{ display: "none" }} onChange={onImport} /></label>
+            </div>
+          </div>
+
+          <div style={S.adminTabs}>
+            {[["products","ምርቶች"],["categories","ምድቦች"],["users","👥 ሰዎች"],["history","🗂 ታሪክ"]].map(([k,l]) => (
+              <button key={k} style={{ ...S.adminTab, ...(tab === k ? S.adminTabActive : {}) }} onClick={() => setTab(k)}>{l}</button>
+            ))}
+          </div>
+
+          {tab === "products" && (
+            <>
+              <div style={S.searchBar}>
+                <input style={S.searchInput} placeholder="🔍 ምርት ፈልግ..." value={search} onChange={e => setSearch(e.target.value)} />
+                <button style={S.addBtn} onClick={openAdd}>+ አስገባ</button>
+              </div>
+              <div style={S.catTabs}>
+                {["ሁሉም", ...categories].map(c => (
+                  <button key={c} style={{ ...S.catTab, ...(filterCat === c ? S.catTabActive : {}) }} onClick={() => setFilterCat(c)}>{c}</button>
+                ))}
+              </div>
+              <div style={S.productGrid}>
+                {filtered.length === 0 && <p style={S.emptyTxt}>ምርት አልተገኘም</p>}
+                {filtered.map(p => (
+                  <div key={p.id} style={S.productCard}>
+                    <div style={{ ...S.catBadge, background: getCategoryColor(p.category) }}>{p.category}</div>
+                    <p style={S.productName}>{p.name}</p>
+                    <div style={S.priceRow}>
+                      <span style={S.price}>{p.note ? p.note + " ብር" : p.price.toLocaleString() + " ብር"}</span>
+                      <span style={S.unit}>/ {p.unit}</span>
+                    </div>
+                    {p.expiry && <div style={S.expiryBadge}>📅 {p.expiry}</div>}
+                    {p.usage  && <div style={{ fontSize: 11, color: "#888" }}>📋 {p.usage.slice(0,28)}{p.usage.length>28?"…":""}</div>}
+                    <div style={S.cardActions}>
+                      <button style={S.editBtn} onClick={() => openEdit(p)}>✏️ ቀይር</button>
+                      <button style={S.deleteBtn} onClick={() => handleDelete(p.id)}>🗑 ሰርዝ</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p style={S.countTxt}>{filtered.length} ምርቶች</p>
+            </>
+          )}
+
+          {tab === "categories" && (
+            <CatManager categories={categories} products={products}
+              onAdd={addCategory} newCat={newCat} setNewCat={setNewCat}
+              onDelete={deleteCategory} onRename={renameCategory}
+              getCategoryColor={getCategoryColor} S={S} />
+          )}
+
+          {tab === "users" && (
+            <div style={S.catManage}>
+              <p style={{ color: "#3a5a4a", fontWeight: 700, marginBottom: 14, fontSize: 15 }}>👥 የተመዘገቡ ተጠቃሚዎች — {users.length} ሰዎች</p>
+              {users.length === 0 && <p style={S.emptyTxt}>እስካሁን ተጠቃሚ አልተመዘገበም</p>}
+              {users.map((u, i) => (
+                <div key={u.id||i} style={S.catRow}>
+                  <div style={{ ...S.catDot, background: "#2d8a4e" }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 700, color: "#1a3a2a", fontSize: 15 }}>{u.name}</div>
+                    <div style={{ fontSize: 12, color: "#888" }}>{u.phone}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {tab === "history" && (
+            <DeleteHistoryTab products={products} saveProducts={saveProducts} notify={notify} getCategoryColor={getCategoryColor} S={S} />
+          )}
+
+          {showForm && (
+            <div style={S.overlay} onClick={() => setShowForm(false)}>
+              <div style={S.modal} onClick={e => e.stopPropagation()}>
+                <h2 style={S.modalTitle}>{editItem ? "✏️ ምርት ቀይር" : "➕ አዲስ ምርት"}</h2>
+
+                <label style={S.label}>የምርት ስም</label>
+                <input style={S.input} placeholder="ስም" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
+
+                <label style={S.label}>ምድብ</label>
+                <select style={S.input} value={form.category} onChange={e => setForm({...form, category: e.target.value})}>
+                  {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+
+                <label style={S.label}>ዋጋ (ብር)</label>
+                <input style={S.input} type="number" placeholder="ዋጋ" value={form.price} onChange={e => setForm({...form, price: e.target.value})} />
+
+                <label style={S.label}>የዋጋ ክልል (አማራጭ — ለምሳሌ: 60–65)</label>
+                <input style={S.input} placeholder="60–65" value={form.note} onChange={e => setForm({...form, note: e.target.value})} />
+
+                <label style={S.label}>መለኪያ</label>
+                <select style={S.input} value={form.unit} onChange={e => setForm({...form, unit: e.target.value})}>
+                  {["ቁጥር","ጥቅል","ጠርሙስ","ዶዝ","ኪሎ","ሊትር","ሳጥን","አምፑል"].map(u => <option key={u} value={u}>{u}</option>)}
+                </select>
+
+                <label style={S.label}>📋 አጠቃቀም (Usage)</label>
+                <textarea style={{ ...S.input, minHeight: 72, resize: "vertical" }}
+                  placeholder="እንዴት እንደሚጠቀሙ ያስገቡ..." value={form.usage}
+                  onChange={e => setForm({...form, usage: e.target.value})} />
+
+                <label style={S.label}>📝 የምርቱ ምንነት (Description)</label>
+                <textarea style={{ ...S.input, minHeight: 60, resize: "vertical" }}
+                  placeholder="ምርቱ ምንድን ነው? ምን ያደርጋል..." value={form.description}
+                  onChange={e => setForm({...form, description: e.target.value})} />
+
+                <label style={S.label}>📅 Expiry Date</label>
+                <input style={S.input} type="month" value={form.expiry} onChange={e => setForm({...form, expiry: e.target.value})} />
+
+                <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
+                  <button style={S.btnPrimary} onClick={handleSave}>💾 አስቀምጥ</button>
+                  <button style={S.btnSecondary} onClick={() => setShowForm(false)}>ሰርዝ</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ===================== STYLES =====================
+    const S = {
+      loading:       { display:"flex", alignItems:"center", justifyContent:"center", height:"100vh", color:"#555", background:"#f0f4f0" },
+      homeWrap:      { minHeight:"100vh", background:"linear-gradient(135deg,#1a3a2a 0%,#2d5a3d 50%,#1a4a3a 100%)", display:"flex", alignItems:"center", justifyContent:"center", padding:20 },
+      homeCard:      { background:"rgba(255,255,255,0.97)", borderRadius:24, padding:"44px 36px", textAlign:"center", maxWidth:380, width:"100%", boxShadow:"0 20px 60px rgba(0,0,0,0.3)" },
+      logo:          { fontSize:60, marginBottom:8 },
+      homeTitle:     { fontSize:26, fontWeight:800, color:"#1a3a2a", margin:"0 0 6px" },
+      homeSubtitle:  { color:"#5a7a6a", fontSize:14, margin:"0 0 28px" },
+      homeBtns:      { display:"flex", flexDirection:"column", gap:12 },
+      btnEmployee:   { padding:"15px 24px", borderRadius:14, border:"2px solid #2d8a4e", background:"#fff", color:"#2d8a4e", fontSize:15, fontWeight:700, cursor:"pointer" },
+      btnRegister:   { padding:"15px 24px", borderRadius:14, border:"2px solid #1a6b8a", background:"#fff", color:"#1a6b8a", fontSize:15, fontWeight:700, cursor:"pointer" },
+      btnAdmin:      { padding:"15px 24px", borderRadius:14, border:"none", background:"linear-gradient(135deg,#1a3a2a,#2d5a3d)", color:"#fff", fontSize:15, fontWeight:700, cursor:"pointer" },
+      overlay:       { position:"fixed", inset:0, background:"rgba(0,0,0,0.6)", display:"flex", alignItems:"center", justifyContent:"center", zIndex:100, padding:20 },
+      modal:         { background:"#fff", borderRadius:20, padding:28, width:"100%", maxWidth:390, boxShadow:"0 12px 40px rgba(0,0,0,0.25)", maxHeight:"92vh", overflowY:"auto" },
+      modalTitle:    { fontSize:18, fontWeight:800, color:"#1a3a2a", margin:"0 0 18px" },
+      input:         { width:"100%", padding:"12px 14px", borderRadius:10, border:"1.5px solid #cde0d0", fontSize:15, marginBottom:14, boxSizing:"border-box", outline:"none", fontFamily:"inherit" },
+      label:         { display:"block", fontSize:13, fontWeight:600, color:"#3a5a4a", marginBottom:5 },
+      btnPrimary:    { flex:1, padding:"13px 0", borderRadius:10, border:"none", background:"linear-gradient(135deg,#2d5a3d,#2d8a4e)", color:"#fff", fontSize:15, fontWeight:700, cursor:"pointer" },
+      btnSecondary:  { flex:1, padding:"13px 0", borderRadius:10, border:"1.5px solid #ccc", background:"#fff", color:"#555", fontSize:15, fontWeight:600, cursor:"pointer" },
+      errorTxt:      { color:"#c0392b", fontSize:13, margin:"-8px 0 12px" },
+      pageWrap:      { minHeight:"100vh", background:"#f4f7f5" },
+      header:        { background:"linear-gradient(135deg,#1a3a2a,#2d5a3d)", padding:"18px 20px", display:"flex", alignItems:"center", justifyContent:"space-between", position:"sticky", top:0, zIndex:10 },
+      pageTitle:     { color:"#fff", fontSize:18, fontWeight:800, margin:0 },
+      backBtn:       { background:"rgba(255,255,255,0.18)", border:"none", color:"#fff", padding:"8px 14px", borderRadius:10, cursor:"pointer", fontSize:13, fontWeight:600 },
+      greetBar:      { background:"#e8f5ee", padding:"12px 20px", color:"#1a3a2a", fontSize:15, borderBottom:"1px solid #cde0d0" },
+      backupBar:     { background:"#fff8e1", padding:"10px 16px", display:"flex", alignItems:"center", justifyContent:"space-between", borderBottom:"1px solid #ffe082", flexWrap:"wrap", gap:8 },
+      backupBtn:     { padding:"8px 14px", borderRadius:10, border:"1.5px solid #f0a500", background:"#fff", color:"#a07000", fontSize:13, fontWeight:700, cursor:"pointer" },
+      searchBar:     { padding:"14px 16px", display:"flex", gap:10 },
+      searchInput:   { flex:1, padding:"12px 14px", borderRadius:12, border:"1.5px solid #cde0d0", fontSize:15, outline:"none", background:"#fff" },
+      addBtn:        { padding:"12px 18px", borderRadius:12, border:"none", background:"linear-gradient(135deg,#2d5a3d,#2d8a4e)", color:"#fff", fontSize:15, fontWeight:700, cursor:"pointer", whiteSpace:"nowrap" },
+      catTabs:       { display:"flex", gap:8, padding:"0 16px 12px", overflowX:"auto", scrollbarWidth:"none" },
+      catTab:        { padding:"7px 16px", borderRadius:20, border:"1.5px solid #ccc", background:"#fff", color:"#555", fontSize:13, fontWeight:600, cursor:"pointer", whiteSpace:"nowrap", flexShrink:0 },
+      catTabActive:  { background:"#1a3a2a", color:"#fff", border:"1.5px solid #1a3a2a" },
+      productGrid:   { display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(155px,1fr))", gap:12, padding:"0 16px 16px" },
+      productCard:   { background:"#fff", borderRadius:16, padding:14, boxShadow:"0 2px 12px rgba(0,0,0,0.07)", display:"flex", flexDirection:"column", gap:6, cursor:"pointer" },
+      catBadge:      { alignSelf:"flex-start", padding:"3px 10px", borderRadius:12, color:"#fff", fontSize:11, fontWeight:700 },
+      productName:   { fontSize:14, fontWeight:700, color:"#1a3a2a", margin:0, lineHeight:1.4 },
+      priceRow:      { display:"flex", alignItems:"baseline", gap:4, flexWrap:"wrap" },
+      price:         { fontSize:16, fontWeight:800, color:"#2d8a4e" },
+      unit:          { fontSize:12, color:"#888" },
+      expiryBadge:   { fontSize:11, color:"#a07000", background:"#fff8e1", borderRadius:8, padding:"2px 8px", alignSelf:"flex-start" },
+      detailBox:     { background:"#f0f7f2", border:"1px solid #cde0d0", borderRadius:10, padding:"10px 14px", marginTop:12 },
+      detailLabel:   { fontSize:12, fontWeight:700, color:"#3a5a4a", display:"block", marginBottom:4 },
+      detailText:    { fontSize:14, color:"#1a3a2a", lineHeight:1.5 },
+      cardActions:   { display:"flex", gap:6, marginTop:4 },
+      editBtn:       { flex:1, padding:"7px 0", borderRadius:8, border:"1.5px solid #2d8a4e", background:"#fff", color:"#2d8a4e", fontSize:12, fontWeight:700, cursor:"pointer" },
+      deleteBtn:     { flex:1, padding:"7px 0", borderRadius:8, border:"1.5px solid #e74c3c", background:"#fff", color:"#e74c3c", fontSize:12, fontWeight:700, cursor:"pointer" },
+      emptyTxt:      { color:"#aaa", textAlign:"center", gridColumn:"1/-1", paddingTop:40, fontSize:15 },
+      countTxt:      { textAlign:"center", color:"#999", fontSize:12, paddingBottom:20 },
+      adminTabs:     { display:"flex", margin:"14px 16px 0", gap:8 },
+      adminTab:      { flex:1, padding:"11px 0", borderRadius:12, border:"1.5px solid #ccc", background:"#fff", color:"#555", fontSize:13, fontWeight:600, cursor:"pointer" },
+      adminTabActive:{ background:"#1a3a2a", color:"#fff", border:"1.5px solid #1a3a2a" },
+      catManage:     { padding:"14px 16px" },
+      addCatRow:     { display:"flex", gap:10, marginBottom:16 },
+      catRow:        { display:"flex", alignItems:"center", gap:10, background:"#fff", borderRadius:12, padding:"12px 14px", marginBottom:8, boxShadow:"0 1px 6px rgba(0,0,0,0.06)" },
+      catDot:        { width:14, height:14, borderRadius:"50%", flexShrink:0 },
+      catName:       { flex:1, fontWeight:700, color:"#1a3a2a", fontSize:15 },
+      catCount:      { fontSize:12, color:"#888" },
+    };
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
